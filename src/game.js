@@ -13,17 +13,12 @@ var sprites = {
 var NF = 480 / 48;
 var NC = 320 / 32;
 
-var enemies = {
-  straight: { x: 0,   y: -50, sprite: 'enemy_ship', health: 10, 
-              E: 100 },
-  ltr:      { x: 0,   y: -100, sprite: 'enemy_purple', health: 10, 
-              B: 75, C: 1, E: 100, missiles: 2  },
-  circle:   { x: 250,   y: -50, sprite: 'enemy_circle', health: 10, 
-              A: 0,  B: -100, C: 1, E: 20, F: 100, G: 1, H: Math.PI/2 },
-  wiggle:   { x: 100, y: -50, sprite: 'enemy_bee', health: 20, 
-              B: 50, C: 4, E: 100, firePercentage: 0.001, missiles: 2 },
-  step:     { x: 0,   y: -50, sprite: 'enemy_circle', health: 10,
-              B: 150, C: 1.2, E: 75 }
+var cars = {
+  car1: {},
+  car2: { dir: 1, row: 2, speed: 40, skin:'car2'},
+  car3: { dir: -1, row: 3, speed: 30, skin:'car3'},
+  car4: { dir: -1, row: 4, speed: 50, skin:'car4'},
+  car5: { dir: 1, row: 2, speed: 40, skin:'car5'}
 };
 
 var OBJECT_PLAYER = 1,
@@ -66,34 +61,108 @@ var playGame = function() {
   var board = new GameBoard();
   var play = new GameBoard();
   board.add(new backGround());
+  play.add(new Log({speed: 80}));
+  play.add(new Log({dir: -1, row: 2, speed: 60}));
+  play.add(new Log({row: 3}));
   play.add(new Frog());
+  play.add(new Car('car1'));
+  play.add(new Car('car2', cars['car2']));
+  play.add(new Car('car3',cars['car3']));
+  play.add(new Car('car4',cars['car4']));
   //board.add(new Level(level1,winGame));
   Game.setBoard(1,play);
   Game.setBoard(0,board);
   //Game.setBoard(5,new GamePoints(0));
 };
 
+var Log = function(props) {
+  this.merge(this.baseParameters);
+  this.setup('trunk');
+  this.merge(props);
+
+  if (this.dir == -1) {this.x = Game.width}
+  else this.x = -this.w;
+  this.y = (this.row)*48; 
+
+  this.step = function(dt){
+    if (this.dir == 1){
+      this.x += this.speed * dt;  
+    }
+    else this.x -= this.speed * dt;
+
+    var collision = this.board.collide(this,OBJECT_PLAYER);
+    if(collision) {
+      collision.onLog(this);
+    }
+  }
+}
+
+Log.prototype = new Sprite();
+Log.prototype.baseParameters = { dir: 1, row: 1, speed: 40}
+
+var Car = function(skin, props) {
+  this.merge(this.baseParameters);
+  this.setup(skin);
+  this.merge(props);
+  
+  if (this.dir == -1) {this.x = Game.width}
+  else this.x = -48;
+  this.y = (NF-1-this.row)*48;
+
+  this.time = 0;
+
+  this.step = function(dt) { 
+  
+    if (this.dir == 1){
+      this.x += this.speed * dt;  
+    }
+    else this.x -= this.speed * dt;
+    
+    var collision = this.board.collide(this,OBJECT_PLAYER);
+    if(collision) {
+      collision.hit();
+      //this.board.remove();
+    }
+  }
+
+}
+
+Car.prototype = new Sprite();
+Car.prototype.type = OBJECT_ENEMY;
+Car.prototype.baseParameters = { dir: -1, row: 1, speed: 60, skin:'car1'};
+
 var Frog = function() {
   this.setup('frog');
   this.x = (((NC/2)-1)*32)+16;
   this.y = (NF*48)-48;
 
+  this.vx = 0;
+  this.dir = 1;
+
   this.time = 0;
 
   this.step = function(dt) { 
-    if(this.time > 0.3){
+    if(this.time > 1){
       if(Game.keys['left']) { if (this.x > 0){ this.x -= 48;} }
       else if(Game.keys['right']) { if (this.x < (NC-1)*32-32){ this.x += 48;} }
       else if(Game.keys['up']) { if (this.y > 0){ this.y -= 48;} }
       else if(Game.keys['down']) { if (this.y < (NF-1)*48){ this.y += 48;} }
       this.time = 0;
     }else{
-      this.time+=dt;
+      this.time+=dt*11;
     };
+    if (this.x < (NC-1)*32 && this.x >= 0){this.x+=this.vx*dt*this.dir;}
+    this.vx = 0;
   }
+
 }
 
 Frog.prototype = new Sprite();
+Frog.prototype.type = OBJECT_PLAYER;
+Frog.prototype.onLog = function(vLog){
+  this.vx = vLog.speed;
+  this.dir = vLog.dir;
+}
 
 var backGround = function() {
   this.setup('bg', {x: 0, y:0});
