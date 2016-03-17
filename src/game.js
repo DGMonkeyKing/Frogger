@@ -64,6 +64,7 @@ var playGame = function() {
   play.add(new Log({speed: 80}));
   play.add(new Log({dir: -1, row: 2, speed: 60}));
   play.add(new Log({row: 3}));
+  play.add(new Water());
   play.add(new Frog());
   play.add(new Car('car1'));
   play.add(new Car('car2', cars['car2']));
@@ -74,6 +75,41 @@ var playGame = function() {
   Game.setBoard(0,board);
   //Game.setBoard(5,new GamePoints(0));
 };
+
+var Death = function(centerX, centerY) {
+  this.setup('death', { frame: 0 });
+  this.x = centerX - this.w/2;
+  this.y = centerY - this.h/2;
+  this.time = 0;
+}
+
+Death.prototype = new Sprite();
+Death.prototype.step = function(dt) {
+  if(this.time > 1){
+    this.frame++;
+    if(this.frame >= 5) {
+      this.board.remove(this);
+    }
+    this.time = 0;
+  } else this.time+=dt*8;
+};
+
+var Water = function() {
+  this.x = 0;
+  this.y = 48;
+
+  this.h = 48*3;
+
+  this.step = function(){
+    var collision = this.board.collide(this,OBJECT_PLAYER);
+    if(collision && !collision.isOnLog()) {
+      collision.hit(this);
+    }
+  }
+  this.draw = function(){}
+}
+
+Water.prototype = new Sprite();
 
 var Log = function(props) {
   this.merge(this.baseParameters);
@@ -162,6 +198,15 @@ Frog.prototype.type = OBJECT_PLAYER;
 Frog.prototype.onLog = function(vLog){
   this.vx = vLog.speed;
   this.dir = vLog.dir;
+}
+Frog.prototype.isOnLog = function(){
+  if(this.vx) return true;
+  return false;
+}
+Frog.prototype.hit = function(damage){
+  this.board.remove(this);
+  this.board.add(new Death(this.x + this.w/2, 
+                                 this.y + this.h/2));
 }
 
 var backGround = function() {
