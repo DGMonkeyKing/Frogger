@@ -22,7 +22,6 @@
             clearTimeout(id);
         };
 }());
-  
 
 var Game = new function() {                                                                  
   var boards = [];
@@ -162,8 +161,11 @@ var SpriteSheet = new function() {
   return this;
 };
 
-var TitleScreen = function TitleScreen(title,subtitle,callback) {
+var maxPoints = 0;
+
+var TitleScreen = function TitleScreen(title,subtitle,points,callback) {
   var up = false;
+  var points = points;
   this.step = function(dt) {
     if(!Game.keys['fire']) up = true;
     if(up && Game.keys['fire'] && callback) callback();
@@ -178,6 +180,12 @@ var TitleScreen = function TitleScreen(title,subtitle,callback) {
     // Foreground
     ctx.fillStyle = "#FFFFFF";
 
+    if(maxPoints < points) maxPoints = points;
+
+    ctx.font = "bold 30px bangers";
+    var measureP = ctx.measureText("Max Points: " + maxPoints);  
+    ctx.fillText("Max Points: " + maxPoints,20,Game.height/10);
+
     ctx.font = "bold 40px bangers";
     var measure = ctx.measureText(title);  
     ctx.fillText(title,Game.width/2 - measure.width/2,Game.height/2);
@@ -185,6 +193,10 @@ var TitleScreen = function TitleScreen(title,subtitle,callback) {
     ctx.font = "bold 20px bangers";
     var measure2 = ctx.measureText(subtitle);
     ctx.fillText(subtitle,Game.width/2 - measure2.width/2,Game.height/2 + 40);
+
+    ctx.font = "bold 50px bangers";
+    var measure3 = ctx.measureText("Points: " + points);
+    ctx.fillText("Points: " + points,Game.width/2 - measure3.width/2,Game.height/2 + 180);
   };
 };
 
@@ -273,8 +285,8 @@ var GameBoard = function() {
   // Check for a collision between the 
   // bounding rects of two objects
   this.overlap = function(o1,o2) {
-    return !((o1.y+o1.h-1<o2.y) || (o1.y>o2.y+o2.h-1) ||
-             (o1.x+o1.w-1<o2.x) || (o1.x>o2.x+o2.w-1));
+    return !((o1.y+o1.h-2<o2.y) || (o1.y>o2.y+o2.h-2) ||
+             (o1.x+o1.w-2<o2.x) || (o1.x>o2.x+o2.w-2));
   };
 
   // Find the first object that collides with obj
