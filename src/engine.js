@@ -46,7 +46,7 @@ var Game = new function() {
     this.loop(); 
 
     if(this.mobile) {
-      this.setBoard(4,new TouchControls());
+      this.setBoard(2,new TouchControls());
     }
 
     SpriteSheet.load(sprite_data,callback);
@@ -204,6 +204,17 @@ var GameBoard = function() {
     return obj; 
   };
 
+    // Add a new object to the object list
+  this.addFirst = function(obj) { 
+    obj.board=this; 
+    for(var i = this.objects.length-1; i >= 0; i--){
+      this.objects[i+1] = this.objects[i];
+    }
+    this.objects[0] = obj; 
+    this.cnt[obj.type] = (this.cnt[obj.type] || 0) + 1;
+    return obj; 
+  };
+
   // Mark an object for removal
   this.remove = function(obj) { 
     var idx = this.removed.indexOf(obj);
@@ -233,8 +244,8 @@ var GameBoard = function() {
   this.iterate = function(funcName) {
      var args = Array.prototype.slice.call(arguments,1);
      for(var i=0,len=this.objects.length;i<len;i++) {
-       var obj = this.objects[i];
-       obj[funcName].apply(obj,args);
+           var obj = this.objects[i];
+           obj[funcName].apply(obj,args);
      }
   };
 
@@ -280,7 +291,9 @@ var GameBoard = function() {
 
 };
 
-var Sprite = function() { };
+var Sprite = function() {
+  this.zIndex = 0;
+};
 
 Sprite.prototype.setup = function(sprite,props) {
   this.sprite = sprite;

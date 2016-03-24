@@ -32,14 +32,14 @@ var startGame = function() {
 
   // Only 1 row of stars
   if(ua.match(/android/)) {
-    Game.setBoard(0,new Starfield(50,0.6,100,true));
+//    Game.setBoard(0,new Starfield(50,0.6,100,true));
   } else {
-    Game.setBoard(0,new Starfield(20,0.4,100,true));
-    Game.setBoard(1,new Starfield(50,0.6,100));
-    Game.setBoard(2,new Starfield(100,1.0,50));
+//    Game.setBoard(0,new Starfield(20,0.4,100,true));
+//    Game.setBoard(1,new Starfield(50,0.6,100));
+//    Game.setBoard(2,new Starfield(100,1.0,50));
   }  
-  Game.setBoard(3,new TitleScreen("Alien Invasion", 
-                                  "Press fire to start playing",
+  Game.setBoard(1,new TitleScreen("Frogger", 
+                                  "Press space to start playing",
                                   playGame));
 };
 
@@ -61,15 +61,23 @@ var playGame = function() {
   var board = new GameBoard();
   var play = new GameBoard();
   board.add(new backGround());
-  play.add(new Log({speed: 80}));
+  play.add(new Log({speed: 50}));
   play.add(new Log({dir: -1, row: 2, speed: 60}));
   play.add(new Log({row: 3}));
+  play.add(new Spawner(new Log({speed: 50}), 30));
+  play.add(new Spawner(new Log({dir: -1, row: 2, speed: 60}), 30));
+  play.add(new Spawner(new Log({row: 3}), 60));
   play.add(new Water());
+  play.add(new Home());
   play.add(new Frog());
   play.add(new Car('car1'));
   play.add(new Car('car2', cars['car2']));
   play.add(new Car('car3',cars['car3']));
   play.add(new Car('car4',cars['car4']));
+  play.add(new Spawner(new Car('car1'), 30));
+  play.add(new Spawner(new Car('car2', cars['car2']), 30));
+  play.add(new Spawner(new Car('car3',cars['car3']), 60));
+  play.add(new Spawner(new Car('car4',cars['car4']), 30));
   //board.add(new Level(level1,winGame));
   Game.setBoard(1,play);
   Game.setBoard(0,board);
@@ -77,7 +85,7 @@ var playGame = function() {
 };
 
 var Death = function(centerX, centerY) {
-  this.setup('death', { frame: 0 });
+  this.setup('death', { frame: 4 });
   this.x = centerX - this.w/2;
   this.y = centerY - this.h/2;
   this.time = 0;
@@ -86,17 +94,38 @@ var Death = function(centerX, centerY) {
 Death.prototype = new Sprite();
 Death.prototype.step = function(dt) {
   if(this.time > 1){
-    this.frame++;
-    if(this.frame >= 5) {
+    this.frame--;
+    if(this.frame < 0) {
       this.board.remove(this);
+      loseGame();
     }
     this.time = 0;
   } else this.time+=dt*8;
 };
 
+var Home = function() {
+  this.x = 0;
+  this.y = 0;
+
+  this.h = 48;
+  this.w = Game.width;
+
+  this.step = function(){
+    var collision = this.board.collide(this,OBJECT_PLAYER);
+    if(collision) {
+      winGame();
+    }
+  }
+  this.draw = function(){}
+}
+
+Home.prototype = new Sprite();
+
 var Water = function() {
   this.x = 0;
   this.y = 48;
+
+  this.zIndex = 2;
 
   this.h = 48*3;
 
@@ -115,6 +144,7 @@ var Log = function(props) {
   this.merge(this.baseParameters);
   this.setup('trunk');
   this.merge(props);
+  this.zIndex = 1;
 
   if (this.dir == -1) {this.x = Game.width}
   else this.x = -this.w;
@@ -130,6 +160,14 @@ var Log = function(props) {
     if(collision) {
       collision.onLog(this);
     }
+  
+    if(this.x > Game.width || this.x < -this.w){
+      this.board.remove(this);
+    }
+  }
+
+  this.clone = function(){
+    return new Log(props);
   }
 }
 
@@ -140,7 +178,8 @@ var Car = function(skin, props) {
   this.merge(this.baseParameters);
   this.setup(skin);
   this.merge(props);
-  
+  this.zIndex = 1;
+
   if (this.dir == -1) {this.x = Game.width}
   else this.x = -48;
   this.y = (NF-1-this.row)*48;
@@ -154,11 +193,17 @@ var Car = function(skin, props) {
     }
     else this.x -= this.speed * dt;
     
+
+
     var collision = this.board.collide(this,OBJECT_PLAYER);
     if(collision) {
       collision.hit();
       //this.board.remove();
     }
+  }
+
+  this.clone = function(){
+    return new Car(skin, props);
   }
 
 }
@@ -167,10 +212,47 @@ Car.prototype = new Sprite();
 Car.prototype.type = OBJECT_ENEMY;
 Car.prototype.baseParameters = { dir: -1, row: 1, speed: 60, skin:'car1'};
 
+var Spawner = function(obj, frec){
+  this.x = 0;
+  this.y = 0;
+  this.time = 0;
+  this.obj = obj;
+  this.f = frec;
+
+  this.draw = function(){}
+}
+
+Spawner.prototype = new Sprite();
+Spawner.prototype.step = function(dt){
+  if(this.time > this.f){
+    this.o = this.obj.clone();
+    this.board.addFirst(this.o);
+    this.time = 0;
+  } else this.time += dt*8;
+}
+/*var Spawner = function(proto, frec) {
+  var obj = Object.create(proto.prototype);
+  obj.
+  this.f = frec;
+  this.time = 0;
+
+  this.draw = function(){}
+}
+
+//Spawner.prototype.baseParameters = {skin:'car1', dir: 1, row: 1, speed: 40, f: 40};
+Spawner.prototype.step = function(dt){
+  if(this.time > this.f){
+    this.board.add(new Log({speed: 50}));
+    this.time = 0;
+  } else this.time += dt*8;
+}*/
+
 var Frog = function() {
   this.setup('frog');
   this.x = (((NC/2)-1)*32)+16;
   this.y = (NF*48)-48;
+
+  this.zIndex = 2;
 
   this.vx = 0;
   this.dir = 1;
@@ -211,6 +293,7 @@ Frog.prototype.hit = function(damage){
 
 var backGround = function() {
   this.setup('bg', {x: 0, y:0});
+  this.zIndex = 0;
 
   this.step = function() {
    // Sprite.draw(ctx);
@@ -220,13 +303,13 @@ var backGround = function() {
 backGround.prototype = new Sprite();
 
 var winGame = function() {
-  Game.setBoard(3,new TitleScreen("You win!", 
+  Game.setBoard(1,new TitleScreen("You win!", 
                                   "Press fire to play again",
                                   playGame));
 };
 
 var loseGame = function() {
-  Game.setBoard(3,new TitleScreen("You lose!", 
+  Game.setBoard(1,new TitleScreen("You lose!", 
                                   "Press fire to play again",
                                   playGame));
 };
@@ -450,7 +533,5 @@ Explosion.prototype.step = function(dt) {
 };
 
 window.addEventListener("load", function() {
-  Game.initialize("game",sprites,playGame);
+  Game.initialize("game",sprites,startGame);
 });
-
-
