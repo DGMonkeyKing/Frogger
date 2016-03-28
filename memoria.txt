@@ -1,0 +1,158 @@
+3.1 Escenario de fondo
+
+	Se modificó la estructura sprites que contenía los datos de los sprites de Galaga,
+ahora, contiene los datos del spriteSheet de Frogger.
+	Además, se ha creado la clase backGround, que hereda de Sprite. Simplemente se establece
+el sprite que se tiene que pintar y se crea la función step vacia.
+	Esta clase se creará en un board aparte dentro de la función playGame. Todos los 
+demás elementos del juego estarán en la distinta capa.
+
+
+
+3.2 Movimiento de la rana
+
+	Igual que se hizo con backGround se creó la clase Frog que hereda de Sprite. En este caso,
+en la función step se tiene que establecer que movimiento se ha de hacer. Para describir el movimiento
+se ha tenido en cuenta el largo y el ancho en función del tamaño unidad de los sprites (48 pixels).
+	Las variables NF y NC nos ayudarán a saber cuantas columnas y filas tiene nuestro juego medido en "ranas"
+Cuando la rana suba por la pantalla, ascenderá 48 pixels, mientras que si avanza por el eje x, lo hará de 32 en 32 pixels.
+	Mediante eventos de teclado se establece que movimiento se hará y, mediante un ajuste del tiempo con dt, se marca 
+el ritmo de la rana.
+	A la rana se le ha etiquetado como OBJECT_PLAYER, para hacer las colisiones.
+
+
+
+3.3 Coches
+
+	Se han creado unos parámetros base para todos los coches, estos son:
+		La dirección del coche: -1 de derecha a izquierda.
+		La fila: de 1 a 4 dependiendo de la fila de la carretera.
+		La velocidad: el número de pixels que se moverá en el eje x.
+		La 'skin': El tipo de coche que se mostrará.
+	Para modificar estos parámetros, se pasarán por parámetro al igual que se
+hacía en la clase Enemy.
+
+
+
+3.4 Colisiones
+
+	Para esto se ha usado lo mismo que en Galaga. En la función step de Car
+se busca si el objeto que invoca la función choca con la rana (Suponiendo un collider cuadrado)
+Si esto ocurre, la rana invoca hit (esta función se explicará luego)
+
+
+
+3.5 Troncos
+
+	 Los troncos son iguales que los coches, con una pequeña diferencia: cuando la rana choque con un tronco, en
+lugar de llamar a la función hit llamará a la función onLog(), que moverá a la rana de la misma manera que se mueve el tronco
+sobre el que está. Está función da valor al parámetro vx de la rana, que se le suma a la función de movimiento.
+
+	Cuando la rana no está en el tronco, este parámetro vale 0. Esto se usará más tarde para no morir cuando se esté en la
+zona de agua.
+
+
+
+3.6 Agua
+
+	Como hemos explicado antes, la función onLog da valor a la variable vx. Si la rana entra en la zona establecida en la clase Water
+y su valor de vx es 0, se tomará como que no está encima de un tronco, y por lo tanto activará la función hit.
+
+	Dentro de esta clase se ha creado la función draw vacia, que se ejecuta en lugar de la función draw de Sprite.
+
+
+
+3.7 Animación de muerte
+
+	Para la animación de muerte se ha creado la clase Death que hereda de Sprite. Esta clase contiene el método step que tratará de
+actualizar la variable frame para que, a la hora de dibujar, se simule una animación.
+
+	La clase Death se instanciará en la función hit de Frog, la cuál creará el objeto en el mismo board cada vez que la rana sea golpeada
+por un coche o choque con el agua.
+
+	Para hacerlo más parecido al juego, se ha optado por empezar con el último frame y bajar hasta el primero.
+
+
+
+3.8 Menús y condiciones de finalización.
+
+	Se ha creado la página principal modificando la función de la clase TitleScreen para que se adapte a nuestro juego, mostrando puntuaciones
+y el nombre del juego.
+
+	Se han creado dos pantallas más, la de victoria (que en versiones posteriores carecerá de uso) y la de derrota, la cual aparece cuando la rana muere.
+Para que se pueda mostrar la pantalla de victoria, es necesario crear una condición que la dispare, esta es que llegue al final de la pantalla. Se usa 
+un método similar al usado en Water. Cuando la rana choque con la zona delimitada, se supondrá una victoria, haciendo aparecer la pantalla.
+
+	
+
+3.9 Generador de coches y troncos
+
+	Esta clase requerirá más explicación, ya que no se ha hecho como se recomendaba en el pdf de la practica.
+
+	Se ha creado la clase Spawner que hereda de Sprite y que recibe un objeto y una frecuencia con la que el objeto será creado.
+En la función playGame se crean los Spawners con los objetos que queremos que se creen y con la frecuencia de aparición. En la función step
+se va midiendo el diferencial de tiempo y, cuando el tiempo que ha pasado es mayor o igual a la frecuencia establecida, el Spawner crea un objeto
+del mismo que tipo que el pasado por parámetro. Esto último se consigue gracias a una función clone en todas las clases de las que se requiera.
+
+	this.clone = function(){
+		return new Car(skin, props);			//Esto es un ejemplo de función clone.
+	}
+
+	Como bien se especifica dentro del punto 3.9 del pdf, hay que modificar la inclusión en la lista del gameBoard para que aparezcan unos sprites
+encima de otros.
+
+	Se ha creado en engine la función addFirst, similar a add, pero esta vez moverá todos los elementos una posición para dejar sitio delante a un objeto.
+De esta manera el problema de superposición de sprites no ocurrirá.
+
+
+
+4 MEJORAS
+
+	Estas son las mejoras establecidas:
+	
+		1. Vidas:
+
+			Idea: El jugador posee 3 vidas. Cuando muera 4 veces, perderá la partida.
+
+			Implementación: Para implementar correctamente las vidas se ha modificada levemente el fichero HTML para que el tamaño de "game"
+		sea 480 + 48, y así permitir ver las vidas que le quedan al jugador. Cada vez que la rana ejecuta la función hit, pierde una vida, se borra
+		una de las imagenes de abajo, y se mira si era la última vida. Si lo era, la pantalla de loseGame aparece.
+					Se ha creado la clase Life, que recibe por parametro un número de vida, de esta manera, cada vida se encargará de aparecer
+		y desaparecer cuando sea pertinente. Encapsulando todas las vidas tenems la clase showLifes, con una función this.initLifes que crea el número de vidas
+		deendiendo de la variable lifes.
+					Esta última clase usa el sprite de una de las filas de la carretera como fondo para las vidas, de manera que las vidas, una vez borradas
+		se sigan dibujando.
+
+		2. Tiempo:
+
+			Idea: En la consola de Javascript se irá mostrando el tiempo restante. Cuando llegue al límite, se ejecutará la función hit de Frog.
+
+			Implementación: Se crea una variable global llamada gameTime. En la clase Frog, se irá calculando y mostrando el tiempo de juego en segundo. Se comprueba si
+		ha pasado el tiempo. En caso de que si, se llama a la función hit (todo esto encapsulado en la función onTime()).
+
+		3. Puntos:
+	
+			Idea: Juego cíclico. Cuando se llega al final, la rana vuelve al principio para sumar más puntos.
+
+			Implmentación: Se ha agregado un nuevo sprite, winFrog. Este sprite aparecerá en la linea final cuando Frog llegue, hará su animación y desparacerá. Igual que antes,
+		se crea una variable global de puntos tanto en game.js como en engine.js (esta última servirá para el másximo de puntos de una sesión). Dentro de frog se tiene la cuenta de:
+		El número de fila por la que va, y el número máximo de fila que ha alcanzado, para que así no vaya sumando puntos todo el rato por subir y bajar. Cuando llegue a Home, sumará 100
+		puntos y se lanzará la animación de winFrog.
+
+			También se ha modificado la función TitleScreen para que muestre el resultado y el máximo de puntos.
+
+		4. Insectos
+		
+			Idea: Haciendo uso de la clase Spawner, randomizar la aparición de un insecto que sume 100 puntos si el jugador colisiona con él.
+
+			Implementación: Se ha creado la clase Bug, que randomiza su valor x e y, haciendo que su valor y corresponda con cada una de las filas. En cada llamada step se modifica la variable
+		de tiempo que le permitirá desparacer cuando pase una cantidad establecida. También hay control de colisiones. Si colisiona la rana con el, desaparece y en su lugar aparece un nuevo sprite, showPoints,
+		que muestra un sprite de 100 puntos que asciende hacia la pantalla y acaba desapareciendo. A la variable global de punto se le suman 100 puntos.
+
+		5. Serpiente
+
+			Idea: Igual que insectos, pero en este caso se randomiza la velocidad de la serpiente.
+
+			Implementación: se hace lo mismo que con Bug, solo que en este caso su valor de y es estático y su valor de x empieza siendo el borde derecho y se va modificando conforme a una velocidad aleatoria que 
+		dentro de un intervalo. Al constar de 3 frames, dentro de la función step se implementa una especie de bucle que va mostrando los sprites en orden creciente y decreciente, simulando un movimiento de la serpiente
+		bastante realista. Si la rana choca, ejecuta su función hit.
